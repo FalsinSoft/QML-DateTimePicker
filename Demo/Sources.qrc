@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/">
+        <file>Main.qml</file>
+		<file>../Sources/TimePicker.qml</file>
+		<file>../Sources/DatePicker.qml</file>
+    </qresource>
+</RCC>
