@@ -5,13 +5,13 @@ Dialog {
     id: timePicker
     width: Math.min(300, parent.width * 0.9)
     height: timeColumn.height + 20 + footer.height
-	x: (parent.width - width) / 2
-	y: (parent.height - height) / 2
+    x: (parent.width - width) / 2
+    y: (parent.height - height) / 2
     standardButtons: Dialog.Ok | Dialog.Cancel
     Material.roundedScale: Material.MediumScale
     Material.background: backgroundColor
     focus: visible
-	modal: true
+    modal: true
     padding: 0
 
     property color backgroundColor: "white"

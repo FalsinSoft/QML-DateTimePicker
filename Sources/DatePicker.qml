@@ -5,12 +5,12 @@ import QtQuick.Controls.Material
 Dialog {
     id: datePicker
     width: Math.min(400, parent.width * 0.9)
-	x: (parent.width - width) / 2
-	y: (parent.height - height) / 2
+    x: (parent.width - width) / 2
+    y: (parent.height - height) / 2
     Material.roundedScale: Material.MediumScale
     Material.background: backgroundColor
     focus: visible
-	modal: true
+    modal: true
     padding: 0
 
     property color backgroundColor: "white"
@@ -128,7 +128,7 @@ Dialog {
                               + "<polygon points='7.293 4.707 14.586 12 7.293 19.293 8.707 20.707 17.414 12 8.707 3.293 7.293 4.707'/>"
                               + "</svg>"
 
-		    ToolButton {
+            ToolButton {
                 id: previousMonthButton
                 Layout.alignment: Qt.AlignVCenter
                 icon.source: parent.leftArrowIcon
@@ -289,7 +289,7 @@ Dialog {
                 }
             }
             MonthGrid {
-		        id: calendarGrid
+                id: calendarGrid
                 width: parent.width
 
                 function moveMonth(value)
@@ -358,8 +358,8 @@ Dialog {
                     }
                     Text {
                         id: dayNumberLabel
-				        text: model.day
-				        font.pointSize: datePicker.topBarFontPointSize - 5
+                        text: model.day
+                        font.pointSize: datePicker.topBarFontPointSize - 5
                         anchors.centerIn: parent
                         color: dayCell.dayNumberColor(model.year, model.month, model.day)
 			        }
