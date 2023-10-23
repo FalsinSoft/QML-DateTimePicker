@@ -23,12 +23,12 @@ Dialog {
     property int maxSelectableMonth: -1
     property int maxSelectableDay: -1
 
-    property int year: 0
+    property int year: 1970
     property int month: 0
     property int day: 1
 
     onAboutToShow: {
-        if(year < 0) year = 0;
+        if(year < 1970) year = 1970;
         if(month < 0 || month > 11) month = 0;
         if(day < 1 || day > 31) day = 1;
         calendarGrid.year = year;

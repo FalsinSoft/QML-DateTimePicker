@@ -242,26 +242,31 @@ Dialog {
                     antialiasing: true
                 }
 
-                Loader {
-                    active: timeInput.currentInput == timeInput.hourInput
-                    sourceComponent: timeLabelsComponent
+                Item {
+                    id: hourNumbers
                     anchors.fill: parent
-                    readonly property var timeModel: ["00", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"]
-                    readonly property int circleOffset: 0
+                    visible: timeInput.currentInput == timeInput.hourInput
+                    Component.onCompleted: {
+                        timeLabelsComponent.createObject(hourNumbers, {
+                                model: ["00", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"], 
+                                circleOffset: 0
+                                })
+                        timeLabelsComponent.createObject(hourNumbers, {
+                                model: ["12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23"], 
+                                circleOffset: timePicker.timeHandleSize
+                                })
+                    }
                 }
-                Loader {
-                    active: timeInput.currentInput == timeInput.hourInput
-                    sourceComponent: timeLabelsComponent
+                Item {
+                    id: minuteNumbers
                     anchors.fill: parent
-                    readonly property var timeModel: ["12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23"]
-                    readonly property int circleOffset: timePicker.timeHandleSize
-                }
-                Loader {
-                    active: timeInput.currentInput == timeInput.minuteInput
-                    sourceComponent: timeLabelsComponent
-                    anchors.fill: parent
-                    readonly property var timeModel: ["00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"]
-                    readonly property int circleOffset: 0
+                    visible: timeInput.currentInput == timeInput.minuteInput
+                    Component.onCompleted: {
+                        timeLabelsComponent.createObject(minuteNumbers, {
+                                model: ["00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"], 
+                                circleOffset: 0
+                                })
+                    }
                 }
 
                 Component {
@@ -269,8 +274,9 @@ Dialog {
 
                     Repeater {
                         id: numbersRepeater
-                        model: timeModel
+                        anchors.fill: parent
 
+                        property int circleOffset: 0
                         readonly property point originPos: Qt.point(width / 2, height / 2)
                         readonly property real radiusCircle: (width / 2) - circleOffset - (timePicker.timeHandleSize / 2)
 
@@ -280,8 +286,8 @@ Dialog {
                             color: timePicker.timeNumberColor
                             font.pointSize: timePicker.timeFontPointSize - 10
 
-                            x: numbersRepeater.originPos.x + numbersRepeater.radiusCircle * Math.cos((index + 9) * 2 * Math.PI / timeModel.length) - (width / 2)
-                            y: numbersRepeater.originPos.y + numbersRepeater.radiusCircle * Math.sin((index + 9) * 2 * Math.PI / timeModel.length) - (height / 2)
+                            x: numbersRepeater.originPos.x + numbersRepeater.radiusCircle * Math.cos((index + 9) * 2 * Math.PI / numbersRepeater.model.length) - (width / 2)
+                            y: numbersRepeater.originPos.y + numbersRepeater.radiusCircle * Math.sin((index + 9) * 2 * Math.PI / numbersRepeater.model.length) - (height / 2)
                         }
                     }
                 }
