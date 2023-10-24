@@ -289,7 +289,7 @@ Dialog {
 
                 function isDateSelectable(year, month, day)
                 {
-                    if(datePicker.maxSelectableYear > 0
+                    if(datePicker.maxSelectableYear >= 1970
                     && datePicker.maxSelectableMonth >= 0 && datePicker.maxSelectableMonth <= 11
                     && datePicker.maxSelectableDay >= 1 && datePicker.maxSelectableDay <= 31)
                     {
