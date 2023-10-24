@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls.Material
+import Qt5Compat.GraphicalEffects
 
 Dialog {
     id: timePicker
@@ -16,8 +17,9 @@ Dialog {
 
     property color backgroundColor: "white"
     property color circleColor: "#E5E4E2"
-    property color handleColor: "#CCCCFF"
+    property color handleColor: "blue"
     property color timeNumberColor: "black"
+    property color timeNumberOverlayColor: "white"
     property color timeSelectedColor: "#CCCCFF"
     property color timeUnselectedColor: "#E5E4E2"
     property int timeFontPointSize: 24
@@ -194,52 +196,57 @@ Dialog {
                 }
 
                 Item {
-                    id: handleItem
-                    x: (timeCircle.width / 2) - (width / 2)
-                    y: (timeCircle.height / 2) - (height / 2)
-                    width: timePicker.timeHandleSize
-                    height: timePicker.timeHandleSize
-                    antialiasing: true
-                    transform: [
-                        Translate {
-                            y: -(timeCircle.width / 2) + (timePicker.timeHandleSize / 2) + timeCircle.handleOffset
-                        },
-                        Rotation {
-                            angle: timeCircle.handleAngle
-                            origin.x: handleItem.width / 2
-                            origin.y: handleItem.height / 2
+                    id: handleArea
+                    anchors.fill: parent
+
+                    Item {
+                        id: handleItem
+                        x: (timeCircle.width / 2) - (width / 2)
+                        y: (timeCircle.height / 2) - (height / 2)
+                        width: timePicker.timeHandleSize
+                        height: timePicker.timeHandleSize
+                        antialiasing: true                    
+                        transform: [
+                            Translate {
+                                y: -(timeCircle.width / 2) + (timePicker.timeHandleSize / 2) + timeCircle.handleOffset
+                            },
+                            Rotation {
+                                angle: timeCircle.handleAngle
+                                origin.x: handleItem.width / 2
+                                origin.y: handleItem.height / 2
+                            }
+                        ]
+                    
+                        MouseArea {
+                            id: trackMouse
+                            anchors.fill: parent
+                            onPositionChanged: timeCircle.updateHandlePosition(mapToItem(timeCircle, trackMouse.mouseX, trackMouse.mouseY), false)
+                            onReleased: if(timeInput.currentInput == timeInput.hourInput) switchToMinuteTimer.start()
                         }
-                    ]
 
-                    MouseArea {
-                        id: trackMouse
-                        anchors.fill: parent
-                        onPositionChanged: timeCircle.updateHandlePosition(mapToItem(timeCircle, trackMouse.mouseX, trackMouse.mouseY), false)
-                        onReleased: if(timeInput.currentInput == timeInput.hourInput) switchToMinuteTimer.start()
+                        Rectangle {
+                            x: (parent.width / 2) - (width / 2)
+                            width: 2
+                            height: (timeCircle.height / 2) - timeCircle.handleOffset
+                            color: timePicker.handleColor
+                            radius: width / 2
+                            antialiasing: true
+                        }
+                        Rectangle {
+                            anchors.fill: parent
+                            color: timePicker.handleColor
+                            radius: width / 2
+                            antialiasing: true
+                        }
                     }
-
                     Rectangle {
-                        x: (parent.width / 2) - (width / 2)
-                        width: 2
-                        height: (timeCircle.height / 2) - timeCircle.handleOffset
+                        width: 10
+                        height: width
+                        anchors.centerIn: parent
                         color: timePicker.handleColor
                         radius: width / 2
                         antialiasing: true
                     }
-                    Rectangle {
-                        anchors.fill: parent
-                        color: timePicker.handleColor
-                        radius: width / 2
-                        antialiasing: true
-                    }
-                }
-                Rectangle {
-                    width: 10
-                    height: width
-                    anchors.centerIn: parent
-                    color: timePicker.handleColor
-                    radius: width / 2
-                    antialiasing: true
                 }
 
                 Item {
@@ -249,12 +256,31 @@ Dialog {
                     Component.onCompleted: {
                         timeLabelsComponent.createObject(hourNumbers, {
                                 model: ["00", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"], 
+                                numberColor: timePicker.timeNumberColor,
                                 circleOffset: 0
-                                })
+                                });
                         timeLabelsComponent.createObject(hourNumbers, {
-                                model: ["12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23"], 
+                                model: ["12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23"],
+                                numberColor: timePicker.timeNumberColor,
                                 circleOffset: timePicker.timeHandleSize
-                                })
+                                });
+                    }
+                }
+                Item {
+                    id: hourNumbersOverlay
+                    anchors.fill: parent
+                    visible: false
+                    Component.onCompleted: {
+                        timeLabelsComponent.createObject(hourNumbersOverlay, {
+                                model: ["00", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"], 
+                                numberColor: timePicker.timeNumberOverlayColor,
+                                circleOffset: 0
+                                });
+                        timeLabelsComponent.createObject(hourNumbersOverlay, {
+                                model: ["12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23"],
+                                numberColor: timePicker.timeNumberOverlayColor,
+                                circleOffset: timePicker.timeHandleSize
+                                });
                     }
                 }
                 Item {
@@ -264,9 +290,27 @@ Dialog {
                     Component.onCompleted: {
                         timeLabelsComponent.createObject(minuteNumbers, {
                                 model: ["00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"], 
+                                numberColor: timePicker.timeNumberColor,
                                 circleOffset: 0
-                                })
+                                });
                     }
+                }
+                Item {
+                    id: minuteNumbersOverlay
+                    anchors.fill: parent
+                    visible: false
+                    Component.onCompleted: {
+                        timeLabelsComponent.createObject(minuteNumbersOverlay, {
+                                model: ["00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"], 
+                                numberColor: timePicker.timeNumberOverlayColor,
+                                circleOffset: 0
+                                });
+                    }
+                }
+                OpacityMask {
+                    anchors.fill: parent
+                    source: (timeInput.currentInput == timeInput.hourInput) ? hourNumbersOverlay : minuteNumbersOverlay
+                    maskSource: handleArea
                 }
 
                 Component {
@@ -277,13 +321,14 @@ Dialog {
                         anchors.fill: parent
 
                         property int circleOffset: 0
+                        property color numberColor: "black"
                         readonly property point originPos: Qt.point(width / 2, height / 2)
                         readonly property real radiusCircle: (width / 2) - circleOffset - (timePicker.timeHandleSize / 2)
 
                         Text {
                             id: timeLabel                    
                             text: modelData
-                            color: timePicker.timeNumberColor
+                            color: numbersRepeater.numberColor
                             font.pointSize: timePicker.timeFontPointSize - 10
 
                             x: numbersRepeater.originPos.x + numbersRepeater.radiusCircle * Math.cos((index + 9) * 2 * Math.PI / numbersRepeater.model.length) - (width / 2)
