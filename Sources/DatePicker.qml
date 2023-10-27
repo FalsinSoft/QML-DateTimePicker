@@ -220,7 +220,7 @@ Dialog {
     
     Item {
         id: calendarFrame
-        width: datePicker.width
+        width: parent.width
         implicitHeight: calendarColumn.height + 20
 
         Column {
