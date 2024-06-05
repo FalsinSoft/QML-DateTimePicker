@@ -61,6 +61,12 @@ Window {
     }
     DatePicker {
         id: datePicker
+        //minSelectableYear: 2023
+        //minSelectableMonth: 0
+        //minSelectableDay: 1
+        //maxSelectableYear: 2024
+        //maxSelectableMonth: 11
+        //maxSelectableDay: 31
         year: app.date.getFullYear()
         month: app.date.getMonth()
         day: app.date.getDate()

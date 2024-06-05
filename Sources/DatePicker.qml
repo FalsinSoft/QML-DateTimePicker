@@ -19,18 +19,28 @@ Dialog {
     property color calendarNumberColor: "black"
     property color calendarUnselectableNumberColor: "gray"
     property int topBarFontPointSize: 18
-    property int maxSelectableYear: -1
-    property int maxSelectableMonth: -1
-    property int maxSelectableDay: -1
+    property int minSelectableYear: 1970
+    property int maxSelectableYear: (new Date().getFullYear() + 50)
+    property int minSelectableMonth: 0
+    property int maxSelectableMonth: 11
+    property int minSelectableDay: 1
+    property int maxSelectableDay: 31
 
     property int year: 1970
     property int month: 0
     property int day: 1
 
     onAboutToShow: {
+        if(minSelectableYear < 1970) minSelectableYear = 1970;
+        if(maxSelectableYear < 1970) maxSelectableYear = 1970;
         if(year < 1970) year = 1970;
+        if(minSelectableMonth < 0 || minSelectableMonth > 11) minSelectableMonth = 0;
+        if(maxSelectableMonth < 0 || maxSelectableMonth > 11) maxSelectableMonth = 0;
         if(month < 0 || month > 11) month = 0;
+        if(minSelectableDay < 1 || minSelectableDay > 31) minSelectableDay = 1;
+        if(maxSelectableDay < 1 || maxSelectableDay > 31) maxSelectableDay = 1;
         if(day < 1 || day > 31) day = 1;
+
         calendarGrid.year = year;
         calendarGrid.month = month;
         topBar.update();
@@ -48,14 +58,11 @@ Dialog {
 
         function update()
         {
-            if(datePicker.maxSelectableYear > 0
-            && datePicker.maxSelectableMonth >= 0 && datePicker.maxSelectableMonth <= 11)
-            {
-                var maxDate = new Date(datePicker.maxSelectableYear, datePicker.maxSelectableMonth);
-                var currentDate = new Date(calendarGrid.year, calendarGrid.month);
-
-                nextMonthButton.enabled = (current.getTime() >= max.getTime()) ? false : true;
-            }
+            var minDateTime = new Date(datePicker.minSelectableYear, datePicker.minSelectableMonth).getTime();
+            var maxDateTime = new Date(datePicker.maxSelectableYear, datePicker.maxSelectableMonth).getTime();
+            var currentDateTime = new Date(calendarGrid.year, calendarGrid.month).getTime();
+            previousMonthButton.enabled = (currentDateTime <= minDateTime) ? false : true;
+            nextMonthButton.enabled = (currentDateTime >= maxDateTime) ? false : true;
         }
 
         Rectangle {
@@ -91,7 +98,7 @@ Dialog {
                 icon.source: parent.leftArrowIcon
                 icon.width: icon.height
                 icon.height: height * 0.7
-                icon.color: datePicker.topBarTextColor
+                icon.color: enabled ? datePicker.topBarTextColor : datePicker.topBarBackgroundColor
                 onClicked: calendarGrid.moveMonth(-1)
             }
             Item {
@@ -124,6 +131,7 @@ Dialog {
                     function onItemSelected(index)
                     {
                         calendarGrid.month = index;
+                        topBar.update();
                     }
                 }
 
@@ -136,19 +144,19 @@ Dialog {
 
                 property var listControl: headerListComponent.createObject(yearsList, {
                                 model: yearsModel,
-                                currentIndex: calendarGrid.year - 1970
+                                currentIndex: calendarGrid.year - datePicker.minSelectableYear
                                 });
 
                 Component.onCompleted: {
-                    var endYear = (new Date().getFullYear() + 100);
-                    for(var i = 1970; i <= endYear; i++) yearsModel.append({ "text": i });
+                    for(var year = datePicker.minSelectableYear; year <= datePicker.maxSelectableYear; year++) yearsModel.append({ "text": year });
                 }
 
                 Connections {
                     target: yearsList.listControl
                     function onItemSelected(index)
                     {
-                        calendarGrid.year = (1970 + index);
+                        calendarGrid.year = (datePicker.minSelectableYear + index);
+                        topBar.update();
                     }
                 }
 
@@ -160,7 +168,7 @@ Dialog {
                 icon.source: parent.rightArrowIcon
                 icon.width: icon.height
                 icon.height:  height * 0.7
-                icon.color: datePicker.topBarTextColor
+                icon.color: enabled ? datePicker.topBarTextColor : datePicker.topBarBackgroundColor
                 onClicked: calendarGrid.moveMonth(1)
             }
         }
@@ -278,6 +286,9 @@ Dialog {
                 id: calendarGrid
                 width: parent.width
 
+                readonly property var minDateTime: new Date(datePicker.minSelectableYear, datePicker.minSelectableMonth, datePicker.minSelectableDay).getTime();
+                readonly property var maxDateTime: new Date(datePicker.maxSelectableYear, datePicker.maxSelectableMonth, datePicker.maxSelectableDay).getTime();
+
                 function moveMonth(value)
                 {
                     var newDate = new Date(calendarGrid.year, calendarGrid.month);
@@ -289,16 +300,8 @@ Dialog {
 
                 function isDateSelectable(year, month, day)
                 {
-                    if(datePicker.maxSelectableYear >= 1970
-                    && datePicker.maxSelectableMonth >= 0 && datePicker.maxSelectableMonth <= 11
-                    && datePicker.maxSelectableDay >= 1 && datePicker.maxSelectableDay <= 31)
-                    {
-                        var maxDate = new Date(datePicker.maxSelectableYear, datePicker.maxSelectableMonth, datePicker.maxSelectableDay);
-                        var cellDate = new Date(year, month, day);
-
-                        return (cellDate.getTime() > maxDate.getTime()) ? false : true;
-                    }
-
+                    var cellDateTime = new Date(year, month, day).getTime();
+                    if(cellDateTime < calendarGrid.minDateTime || cellDateTime > calendarGrid.maxDateTime) return false;
                     return true;
                 }
 
