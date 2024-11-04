@@ -13,6 +13,10 @@ Dialog {
     modal: true
     padding: 0
 
+    readonly property int pickDayMonthYear: 0
+    readonly property int pickMonthYear: 1
+    readonly property int pickYear: 2
+
     property color backgroundColor: "white"
     property color topBarBackgroundColor: "blue"
     property color topBarTextColor: "white"
@@ -26,6 +30,7 @@ Dialog {
     property int minSelectableDay: 1
     property int maxSelectableDay: 31
 
+    property int pickMode: pickDayMonthYear
     property int year: 1970
     property int month: 0
     property int day: 1
@@ -41,47 +46,87 @@ Dialog {
         if(maxSelectableDay < 1 || maxSelectableDay > 31) maxSelectableDay = 1;
         if(day < 1 || day > 31) day = 1;
 
-        calendarGrid.year = year;
-        calendarGrid.month = month;
-        topBar.update();
+        topBar.initialize();
+
+        switch(pickMode)
+        {
+            case pickDayMonthYear:
+                dateComponentLoader.sourceComponent = calendarComponent;
+                break;
+            case pickMonthYear:
+                dateComponentLoader.sourceComponent = monthsGridComponent;
+                break;
+            case pickYear:
+                dateComponentLoader.sourceComponent = yearsGridComponent;
+                break;
+        }
+    }
+    onClosed: {
+        dateComponentLoader.sourceComponent = null;
     }
 
     Timer {
-        id: acceptDayTimer
+        id: acceptDateTimer
         interval: 250
         onTriggered: datePicker.accept()
+    }
+
+    background: Canvas {
+        onPaint: {
+            var radius = datePicker.Material.roundedScale;
+            var ctx = getContext("2d");
+
+            ctx.beginPath();
+            ctx.moveTo(radius, 0);
+            ctx.lineTo(width - radius, 0);
+            ctx.quadraticCurveTo(width, 0, width, radius);
+            ctx.lineTo(width, topBar.height);
+            ctx.lineTo(0, topBar.height);
+            ctx.lineTo(0, radius);
+            ctx.quadraticCurveTo(0, 0, radius, 0);
+            ctx.closePath();
+            ctx.fillStyle = datePicker.topBarBackgroundColor;
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(0, topBar.height + 1);
+            ctx.lineTo(0, height - radius);
+            ctx.quadraticCurveTo(0, height, radius, height);
+            ctx.lineTo(width - radius, height);
+            ctx.quadraticCurveTo(width, height, width, height - radius);
+            ctx.lineTo(width, topBar.height + 1);
+            ctx.closePath();
+            ctx.fillStyle = datePicker.backgroundColor;
+            ctx.fill();
+        }
     }
     
     header: Item {
         id: topBar
-        implicitHeight: titleRow.height
+        implicitHeight: topBarRow.height
 
-        function update()
+        property int year
+        property int month
+
+        function initialize()
         {
-            var minDateTime = new Date(datePicker.minSelectableYear, datePicker.minSelectableMonth).getTime();
-            var maxDateTime = new Date(datePicker.maxSelectableYear, datePicker.maxSelectableMonth).getTime();
-            var currentDateTime = new Date(calendarGrid.year, calendarGrid.month).getTime();
-            previousMonthButton.enabled = (currentDateTime <= minDateTime) ? false : true;
-            nextMonthButton.enabled = (currentDateTime >= maxDateTime) ? false : true;
-        }
+            var years = [];
 
-        Rectangle {
-            anchors.fill: parent    
-            color: datePicker.topBarBackgroundColor
-            radius: Material.MediumScale
-        }
-        Rectangle {
-            width: parent.width
-            height: Material.MediumScale
-            color: datePicker.topBarBackgroundColor
-            anchors.bottom: parent.bottom
+            yearsList.enabled = false;
+            for(var i = datePicker.minSelectableYear; i <= datePicker.maxSelectableYear; i++) years.push(i);
+            yearsList.model = years;
+            yearsList.enabled = true;
+
+            topBar.year = datePicker.year;
+            topBar.month = datePicker.month;
         }
 
         RowLayout {
-            id: titleRow
+            id: topBarRow
             width: parent.width
+            height: 50
             anchors.verticalCenter: parent.verticalCenter
-            spacing: 5
+            spacing: 10
 
             readonly property string leftArrowIcon: "data:image/svg+xml;utf8,"
                               + "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'>"
@@ -93,278 +138,427 @@ Dialog {
                               + "</svg>"
 
             ToolButton {
-                id: previousMonthButton
-                Layout.alignment: Qt.AlignVCenter
+                id: previousDateButton
+                Layout.fillHeight: true
                 icon.source: parent.leftArrowIcon
                 icon.width: icon.height
                 icon.height: height * 0.7
                 icon.color: enabled ? datePicker.topBarTextColor : datePicker.topBarBackgroundColor
-                onClicked: calendarGrid.moveMonth(-1)
+                onClicked: {
+                    if(dateComponentLoader.status == Loader.Ready)
+                    {
+                        dateComponentLoader.item.previous();
+                    }
+                }
+            }
+            ComboBox {
+                id: monthsList
+                visible: datePicker.pickMode == datePicker.pickDayMonthYear
+                currentIndex: topBar.month
+                Layout.preferredWidth: 160
+                Layout.fillHeight: true
+                font.pointSize: datePicker.topBarFontPointSize - 3
+                Material.foreground: datePicker.topBarTextColor
+
+                model: [
+                    qsTr("January"),
+                    qsTr("February"),
+                    qsTr("March"),
+                    qsTr("April"),
+                    qsTr("May"),
+                    qsTr("June"),
+                    qsTr("July"),
+                    qsTr("August"),
+                    qsTr("September"),
+                    qsTr("October"),
+                    qsTr("November"),
+                    qsTr("December")
+                ]
+
+                background: Rectangle { color: monthsList.down ? Qt.darker(datePicker.topBarBackgroundColor, 1.2) : datePicker.topBarBackgroundColor }
+
+                onActivated: (index)=> {
+                    topBar.month = index;
+                    dateComponentLoader.item.update();
+                }
             }
             Item {
-                id: monthsList
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-
-                property var listControl: headerListComponent.createObject(monthsList, {
-                                model: monthsModel,
-                                currentIndex: calendarGrid.month
-                                });
-
-                Component.onCompleted: {
-                    monthsModel.append({ "text": qsTr("January") });
-                    monthsModel.append({ "text": qsTr("February") });
-                    monthsModel.append({ "text": qsTr("March") });
-                    monthsModel.append({ "text": qsTr("April") });
-                    monthsModel.append({ "text": qsTr("May") });
-                    monthsModel.append({ "text": qsTr("June") });
-                    monthsModel.append({ "text": qsTr("July") });
-                    monthsModel.append({ "text": qsTr("August") });
-                    monthsModel.append({ "text": qsTr("September") });
-                    monthsModel.append({ "text": qsTr("October") });
-                    monthsModel.append({ "text": qsTr("November") });
-                    monthsModel.append({ "text": qsTr("December") });
-                }
-
-                Connections {
-                    target: monthsList.listControl
-                    function onItemSelected(index)
-                    {
-                        calendarGrid.month = index;
-                        topBar.update();
-                    }
-                }
-
-                ListModel { id: monthsModel }
             }
-            Item {
+            ComboBox {
                 id: yearsList
-                implicitWidth: listControl.implicitWidth
+                visible: datePicker.pickMode == datePicker.pickDayMonthYear || datePicker.pickMode == datePicker.pickMonthYear
+                currentIndex: enabled ? indexOfValue(topBar.year) : -1
+                Layout.preferredWidth: 100
                 Layout.fillHeight: true
+                font.pointSize: datePicker.topBarFontPointSize - 2
+                Material.foreground: datePicker.topBarTextColor
 
-                property var listControl: headerListComponent.createObject(yearsList, {
-                                model: yearsModel,
-                                currentIndex: calendarGrid.year - datePicker.minSelectableYear
-                                });
+                background: Rectangle { color: yearsList.down ? Qt.darker(datePicker.topBarBackgroundColor, 1.2) : datePicker.topBarBackgroundColor }
 
-                Component.onCompleted: {
-                    for(var year = datePicker.minSelectableYear; year <= datePicker.maxSelectableYear; year++) yearsModel.append({ "text": year });
+                onActivated: (index)=> {
+                    topBar.year = yearsList.currentValue;
+                    dateComponentLoader.item.update();
                 }
-
-                Connections {
-                    target: yearsList.listControl
-                    function onItemSelected(index)
-                    {
-                        calendarGrid.year = (datePicker.minSelectableYear + index);
-                        topBar.update();
-                    }
-                }
-
-                ListModel { id: yearsModel }
             }
             ToolButton {
-                id: nextMonthButton
-                Layout.alignment: Qt.AlignVCenter
+                id: nextDateButton
+                Layout.fillHeight: true
                 icon.source: parent.rightArrowIcon
                 icon.width: icon.height
                 icon.height:  height * 0.7
                 icon.color: enabled ? datePicker.topBarTextColor : datePicker.topBarBackgroundColor
-                onClicked: calendarGrid.moveMonth(1)
-            }
-        }
-
-        Component {
-            id: headerListComponent
-
-            ComboBox {
-                id: headerListControl
-                width: parent.width
-                implicitWidth: headerListLabel.width + indicator.width + 20
-                height: parent.height
-                
-                signal itemSelected(int index)
-                
-                onCurrentIndexChanged: itemSelected(currentIndex)
-
-                contentItem: Item {
-                    width: headerListControl.width - headerListControl.indicator.width - 20
-                    height: headerListControl.height
-
-                    Text {
-                        id: headerListLabel
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: headerListControl.displayText
-                        elide: Text.ElideRight
-                        font.pointSize: datePicker.topBarFontPointSize
-                        color: datePicker.topBarTextColor
+                onClicked: {
+                    if(dateComponentLoader.status == Loader.Ready)
+                    {
+                        dateComponentLoader.item.next();
                     }
                 }
-
-                background: Rectangle {
-                    color: headerListControl.down ? Qt.darker(datePicker.topBarBackgroundColor, 1.2) : datePicker.topBarBackgroundColor
-                    radius: 5
-                }
-
-                indicator: Canvas {
-                    x: headerListControl.width - width - 10
-                    y: (headerListControl.availableHeight - height) / 2
-                    width: 15
-                    height: 10
-
-                    onPaint: {
-                        var ctx = getContext("2d");
-                        ctx.reset();
-                        ctx.moveTo(0, 0);
-                        ctx.lineTo(width, 0);
-                        ctx.lineTo(width / 2, height);
-                        ctx.closePath();
-                        ctx.fillStyle = datePicker.topBarTextColor;
-                        ctx.fill();
-                    }
-                }                
             }
         }
     }
-    
-    Item {
-        id: calendarFrame
+
+    Loader {
+        id: dateComponentLoader
         width: parent.width
-        implicitHeight: calendarColumn.height + 20
+    }
 
-        Column {
-            id: calendarColumn
-            width: parent.width - 20
-            anchors.top: parent.top
-            anchors.horizontalCenter: parent.horizontalCenter
-            spacing: 5
-            
-            DayOfWeekRow {
-                id: calendarDayOfWeek
-                width: parent.width
+    Component {
+        id: calendarComponent
 
-                function dayOfWeekShortName(day)
-                {
-                    var name;
+        Item {
+            implicitHeight: calendarColumn.height + 20
+
+            function next()
+            {
+                var newDate = new Date(topBar.year, topBar.month, 1);
+                newDate.setMonth(newDate.getMonth() + 1);
+                topBar.year = newDate.getFullYear();
+                topBar.month = newDate.getMonth();
+                update();
+            }
+
+            function previous()
+            {
+                var newDate = new Date(topBar.year, topBar.month, 1);
+                newDate.setMonth(newDate.getMonth() - 1);
+                topBar.year = newDate.getFullYear();
+                topBar.month = newDate.getMonth();
+                previousDateButton.enabled = false;
+                update();
+            }
+
+            function update()
+            {
+                var minDateTime = new Date(datePicker.minSelectableYear, datePicker.minSelectableMonth, 1).getTime();
+                var maxDateTime = new Date(datePicker.maxSelectableYear, datePicker.maxSelectableMonth, 1).getTime();
+                var currentDateTime = new Date(topBar.year, topBar.month, 1).getTime();
+                previousDateButton.enabled = (currentDateTime <= minDateTime) ? false : true;
+                nextDateButton.enabled = (currentDateTime >= maxDateTime) ? false : true;
+            }
+
+            Component.onCompleted: update()
+
+            Column {
+                id: calendarColumn
+                width: parent.width - 20
+                anchors.top: parent.top
+                anchors.horizontalCenter: parent.horizontalCenter
+                spacing: 5
             
-                    switch(day)
+                DayOfWeekRow {
+                    id: calendarDayOfWeek
+                    width: parent.width
+
+                    function dayOfWeekShortName(day)
                     {
-                        case 0:
-                            name = qsTr("Sun");
-                            break;
-                        case 1:
-                            name = qsTr("Mon");
-                            break;
-                        case 2:
-                            name = qsTr("Tue");
-                            break;
-                        case 3:
-                            name = qsTr("Wed");
-                            break;
-                        case 4:
-                            name = qsTr("Thu");
-                            break;
-                        case 5:
-                            name = qsTr("Fri");
-                            break;
-                        case 6:
-                            name = qsTr("Sat");
-                            break;
+                        var name;
+            
+                        switch(day)
+                        {
+                            case 0:
+                                name = qsTr("Sun");
+                                break;
+                            case 1:
+                                name = qsTr("Mon");
+                                break;
+                            case 2:
+                                name = qsTr("Tue");
+                                break;
+                            case 3:
+                                name = qsTr("Wed");
+                                break;
+                            case 4:
+                                name = qsTr("Thu");
+                                break;
+                            case 5:
+                                name = qsTr("Fri");
+                                break;
+                            case 6:
+                                name = qsTr("Sat");
+                                break;
+                        }
+
+                        return name;
                     }
 
-                    return name;
+                    delegate: Text {
+                        text: calendarDayOfWeek.dayOfWeekShortName(model.day)
+                        font: calendarDayOfWeek.font
+                        color: datePicker.calendarNumberColor
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
                 }
+                MonthGrid {
+                    id: calendarGrid
+                    width: parent.width
+                    month: topBar.month
+                    year: topBar.year
 
-                delegate: Text {
-                    text: calendarDayOfWeek.dayOfWeekShortName(model.day)
-                    font: calendarDayOfWeek.font
-                    color: datePicker.calendarNumberColor
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
+                    readonly property var minDateTime: new Date(datePicker.minSelectableYear, datePicker.minSelectableMonth, datePicker.minSelectableDay).getTime();
+                    readonly property var maxDateTime: new Date(datePicker.maxSelectableYear, datePicker.maxSelectableMonth, datePicker.maxSelectableDay).getTime();
+
+                    function isDateSelectable(year, month, day)
+                    {
+                        var cellDateTime = new Date(year, month, day).getTime();
+                        if(cellDateTime < calendarGrid.minDateTime || cellDateTime > calendarGrid.maxDateTime) return false;
+                        return true;
+                    }
+
+                    delegate: Item {
+                        id: dayCell
+                        width: calendarColumn.width / 7
+                        height: dayNumberLabel.height + 20
+
+                        function dayNumberColor(year, month, day)
+                        {
+                            var numberColor = datePicker.calendarUnselectableNumberColor;
+
+                            todayColor.visible = false;
+                            if(calendarGrid.isDateSelectable(year, month, day))
+                            {
+                                if(month == calendarGrid.month)
+                                {
+                                    if(year == datePicker.year
+                                    && month == datePicker.month
+                                    && day == datePicker.day)
+                                    {
+                                        todayColor.visible = true;
+                                        numberColor = datePicker.topBarTextColor;
+                                    }
+                                    else
+                                    {
+                                        numberColor = datePicker.calendarNumberColor;
+                                    }
+                                }
+                            }
+                                                
+                            return numberColor;
+                        }
+
+                        Rectangle {
+                            id: todayColor
+                            visible: false
+                            width: height
+                            height: dayNumberLabel.height * 2
+                            anchors.centerIn: parent
+                            color: datePicker.topBarBackgroundColor
+                            radius: width / 2
+                        }
+                        Text {
+                            id: dayNumberLabel
+                            text: model.day
+                            font.pointSize: datePicker.topBarFontPointSize - 5
+                            anchors.centerIn: parent
+                            color: dayCell.dayNumberColor(model.year, model.month, model.day)
+			            }
+                    }
+
+                    onClicked: (date)=> {
+                        var year = date.getFullYear();
+                        var month = date.getMonth();
+                        var day = date.getDate();
+
+                        if(calendarGrid.isDateSelectable(year, month, day) == true && month == calendarGrid.month)
+                        {
+                            datePicker.year = year;
+                            datePicker.month = month;
+                            datePicker.day = day;
+                            acceptDateTimer.start();
+                        }
+                    }
                 }
             }
-            MonthGrid {
-                id: calendarGrid
-                width: parent.width
+        }
+    }
 
-                readonly property var minDateTime: new Date(datePicker.minSelectableYear, datePicker.minSelectableMonth, datePicker.minSelectableDay).getTime();
-                readonly property var maxDateTime: new Date(datePicker.maxSelectableYear, datePicker.maxSelectableMonth, datePicker.maxSelectableDay).getTime();
+    Component {
+        id: monthsGridComponent
 
-                function moveMonth(value)
+        Item {
+            implicitHeight: monthsGrid.height + 10
+
+            function next()
+            {
+                topBar.year += 1;
+                update();
+            }
+
+            function previous()
+            {
+                topBar.year -= 1;
+                update();
+            }
+
+            function update()
+            {
+                previousDateButton.enabled = (topBar.year > datePicker.minSelectableYear) ? true : false;
+                nextDateButton.enabled = (topBar.year < datePicker.maxSelectableYear) ? true : false;
+            }
+
+            Component.onCompleted: update()
+
+            GridLayout {
+                id: monthsGrid
+                width: parent.width - 20
+                anchors.top: parent.top
+                anchors.horizontalCenter: parent.horizontalCenter
+                flow: GridLayout.TopToBottom
+                rows: 4
+                columns: 3
+                rowSpacing: 5
+                columnSpacing: 5
+
+                readonly property var minDateTime: new Date(datePicker.minSelectableYear, datePicker.minSelectableMonth, 1).getTime();
+                readonly property var maxDateTime: new Date(datePicker.maxSelectableYear, datePicker.maxSelectableMonth, 1).getTime();
+
+                function isMonthSelectable(year, month)
                 {
-                    var newDate = new Date(calendarGrid.year, calendarGrid.month);
-                    newDate.setMonth(newDate.getMonth() + value);
-                    calendarGrid.year = newDate.getFullYear();
-                    calendarGrid.month = newDate.getMonth();
-                    topBar.update();
-                }
-
-                function isDateSelectable(year, month, day)
-                {
-                    var cellDateTime = new Date(year, month, day).getTime();
-                    if(cellDateTime < calendarGrid.minDateTime || cellDateTime > calendarGrid.maxDateTime) return false;
+                    var cellDateTime = new Date(year, month, 1).getTime();
+                    if(cellDateTime < monthsGrid.minDateTime || cellDateTime > monthsGrid.maxDateTime) return false;
                     return true;
                 }
 
-                delegate: Item {
-                    id: dayCell
-                    width: calendarColumn.width / 7
-                    height: dayNumberLabel.height + 20
+                Repeater {
+                    model: [qsTr("January"),
+                            qsTr("February"),
+                            qsTr("March"),
+                            qsTr("April"),
+                            qsTr("May"),
+                            qsTr("June"),
+                            qsTr("July"),
+                            qsTr("August"),
+                            qsTr("September"),
+                            qsTr("October"),
+                            qsTr("November"),
+                            qsTr("December")]
 
-                    function dayNumberColor(year, month, day)
-                    {
-                        var numberColor = datePicker.calendarUnselectableNumberColor;
-
-                        todayColor.visible = false;
-                        if(calendarGrid.isDateSelectable(year, month, day))
-                        {
-                            if(month == calendarGrid.month)
-                            {
-                                if(year == datePicker.year
-                                && month == datePicker.month
-                                && day == datePicker.day)
-                                {
-                                    todayColor.visible = true;
-                                    numberColor = datePicker.topBarTextColor;
-                                }
-                                else
-                                {
-                                    numberColor = datePicker.calendarNumberColor;
-                                }
-                            }
+                    Button {
+                        Layout.fillWidth: true
+                        enabled: monthsGrid.isMonthSelectable(topBar.year, index)
+                        text: modelData
+                        autoExclusive: true
+                        flat: true
+                        checkable: true
+                        font.pointSize: datePicker.topBarFontPointSize - 3
+                        Material.roundedScale: Material.MediumScale
+                        Material.accent: checked ? datePicker.topBarTextColor : monthsGrid.Material.accent
+                        Material.background: checked ? datePicker.topBarBackgroundColor : monthsGrid.Material.background
+                        checked: topBar.year == datePicker.year && index == datePicker.month
+                        onClicked: {
+                            datePicker.year = topBar.year;
+                            datePicker.month = index;
+                            acceptDateTimer.start();
                         }
-                                                
-                        return numberColor;
                     }
+                }
+            }
+        }
+    }
 
-                    Rectangle {
-                        id: todayColor
-                        visible: false
-                        width: height
-                        height: dayNumberLabel.height * 2
-                        anchors.centerIn: parent
-                        color: datePicker.topBarBackgroundColor
-                        radius: width / 2
-                    }
-                    Text {
-                        id: dayNumberLabel
-                        text: model.day
-                        font.pointSize: datePicker.topBarFontPointSize - 5
-                        anchors.centerIn: parent
-                        color: dayCell.dayNumberColor(model.year, model.month, model.day)
-			        }
+    Component {
+        id: yearsGridComponent
+
+        Item {
+            implicitHeight: yearsGrid.height + 10
+
+            function next()
+            {
+                topBar.year += (yearsGrid.rows * yearsGrid.columns);
+                yearsRepeater.calculateYears(topBar.year);
+                update();
+            }
+
+            function previous()
+            {
+                topBar.year -= (yearsGrid.rows * yearsGrid.columns);
+                yearsRepeater.calculateYears(topBar.year);
+                update();
+            }
+
+            function update()
+            {
+                previousDateButton.enabled = (yearsRepeaterModel.get(0).year > datePicker.minSelectableYear) ? true : false;
+                nextDateButton.enabled = (yearsRepeaterModel.get(yearsRepeaterModel.count - 1).year < datePicker.maxSelectableYear) ? true : false;
+            }
+
+            Component.onCompleted: {
+                yearsRepeater.calculateYears(datePicker.year);
+                update();
+            }
+
+            GridLayout {
+                id: yearsGrid
+                width: parent.width - 20
+                anchors.top: parent.top
+                anchors.horizontalCenter: parent.horizontalCenter
+                flow: GridLayout.TopToBottom
+                rows: 4
+                columns: 4
+                rowSpacing: 5
+                columnSpacing: 5
+
+                readonly property var minDateTime: new Date(datePicker.minSelectableYear, 0, 1).getTime();
+                readonly property var maxDateTime: new Date(datePicker.maxSelectableYear, 0, 1).getTime();
+
+                function isYearSelectable(year)
+                {
+                    var cellDateTime = new Date(year, 0, 1).getTime();
+                    if(cellDateTime < yearsGrid.minDateTime || cellDateTime > yearsGrid.maxDateTime) return false;
+                    return true;
                 }
 
-                onClicked: {
-                    var year = date.getFullYear();
-                    var month = date.getMonth();
-                    var day = date.getDate();
+                Repeater {
+                    id: yearsRepeater
+                    model: ListModel { id: yearsRepeaterModel }
 
-                    if(calendarGrid.isDateSelectable(year, month, day) == true && month == calendarGrid.month)
+                    function calculateYears(centralYear)
                     {
-                        datePicker.year = year;
-                        datePicker.month = month;
-                        datePicker.day = day;
-                        acceptDayTimer.start();
+                        var visibleYearsNumber = (yearsGrid.rows * yearsGrid.columns);
+                        var baseYear = (centralYear - (visibleYearsNumber / 2));
+
+                        yearsRepeaterModel.clear();
+                        for(var i = baseYear; i < (baseYear + visibleYearsNumber); i++) yearsRepeaterModel.append({ "year": i });
+                    }
+
+                    Button {
+                        Layout.fillWidth: true
+                        enabled: yearsGrid.isYearSelectable(model.year)
+                        text: model.year
+                        autoExclusive: true
+                        flat: true
+                        checkable: true
+                        font.pointSize: datePicker.topBarFontPointSize - 3
+                        Material.roundedScale: Material.MediumScale
+                        Material.accent: checked ? datePicker.topBarTextColor : yearsGrid.Material.accent
+                        Material.background: checked ? datePicker.topBarBackgroundColor : yearsGrid.Material.background
+                        checked: parseInt(text) == datePicker.year
+                        onClicked: {
+                            datePicker.year = model.year;
+                            acceptDateTimer.start();
+                        }
                     }
                 }
             }

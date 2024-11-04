@@ -37,13 +37,68 @@ Window {
 
             Button {
                 text: qsTr("Date")
-                onClicked: datePicker.open()
+                onClicked: {
+                    datePicker.minSelectableYear = date.getFullYear() - 2;
+                    datePicker.minSelectableMonth = 5;
+                    datePicker.minSelectableDay = 10;
+                    datePicker.maxSelectableYear = date.getFullYear() + 2;
+                    datePicker.maxSelectableMonth = 5;
+                    datePicker.maxSelectableDay = 10;
+                    datePicker.pickMode = datePicker.pickDayMonthYear;
+                    datePicker.open();
+                }
                 font.pointSize: 25
                 Material.background: "blue"
                 Material.foreground: "white"
             }
             Text {
-                text: ("0" + app.date.getDate()).slice(-2)   + "-" + ("0" + app.date.getMonth()).slice(-2) + "-" + app.date.getFullYear()
+                text: ("0" + app.date.getDate()).slice(-2)   + "-" + ("0" + (app.date.getMonth() + 1)).slice(-2) + "-" + app.date.getFullYear()
+                anchors.verticalCenter: parent.verticalCenter
+                font.pointSize: 28
+            }
+        }
+        Row {
+            spacing: 20
+
+            Button {
+                text: qsTr("Month and year")
+                onClicked: {
+                    var date = new Date();
+                    datePicker.minSelectableYear = date.getFullYear() - 5;
+                    datePicker.minSelectableMonth = 5;
+                    datePicker.maxSelectableYear = date.getFullYear() + 5;
+                    datePicker.maxSelectableMonth = 5;
+                    datePicker.pickMode = datePicker.pickMonthYear;
+                    datePicker.open();
+                }
+                font.pointSize: 25
+                Material.background: "blue"
+                Material.foreground: "white"
+            }
+            Text {
+                text: ("0" + (app.date.getMonth() + 1)).slice(-2) + "-" + app.date.getFullYear()
+                anchors.verticalCenter: parent.verticalCenter
+                font.pointSize: 28
+            }
+        }
+        Row {
+            spacing: 20
+
+            Button {
+                text: qsTr("Year")
+                onClicked: {
+                    var date = new Date();
+                    datePicker.minSelectableYear = date.getFullYear() - 10;
+                    datePicker.maxSelectableYear = date.getFullYear() + 10;
+                    datePicker.pickMode = datePicker.pickYear;
+                    datePicker.open();
+                }
+                font.pointSize: 25
+                Material.background: "blue"
+                Material.foreground: "white"
+            }
+            Text {
+                text: app.date.getFullYear()
                 anchors.verticalCenter: parent.verticalCenter
                 font.pointSize: 28
             }
@@ -61,12 +116,6 @@ Window {
     }
     DatePicker {
         id: datePicker
-        //minSelectableYear: 2023
-        //minSelectableMonth: 0
-        //minSelectableDay: 1
-        //maxSelectableYear: 2024
-        //maxSelectableMonth: 11
-        //maxSelectableDay: 31
         year: app.date.getFullYear()
         month: app.date.getMonth()
         day: app.date.getDate()
