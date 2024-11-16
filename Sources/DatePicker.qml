@@ -74,14 +74,15 @@ Dialog {
     background: Canvas {
         onPaint: {
             var radius = datePicker.Material.roundedScale;
+            var topBarHeight = (topBar.height + 1);
             var ctx = getContext("2d");
 
             ctx.beginPath();
             ctx.moveTo(radius, 0);
             ctx.lineTo(width - radius, 0);
             ctx.quadraticCurveTo(width, 0, width, radius);
-            ctx.lineTo(width, topBar.height);
-            ctx.lineTo(0, topBar.height);
+            ctx.lineTo(width, topBarHeight);
+            ctx.lineTo(0, topBarHeight);
             ctx.lineTo(0, radius);
             ctx.quadraticCurveTo(0, 0, radius, 0);
             ctx.closePath();
@@ -89,12 +90,12 @@ Dialog {
             ctx.fill();
 
             ctx.beginPath();
-            ctx.moveTo(0, topBar.height + 1);
+            ctx.moveTo(0, topBarHeight);
             ctx.lineTo(0, height - radius);
             ctx.quadraticCurveTo(0, height, radius, height);
             ctx.lineTo(width - radius, height);
             ctx.quadraticCurveTo(width, height, width, height - radius);
-            ctx.lineTo(width, topBar.height + 1);
+            ctx.lineTo(width, topBarHeight);
             ctx.closePath();
             ctx.fillStyle = datePicker.backgroundColor;
             ctx.fill();
@@ -103,7 +104,7 @@ Dialog {
     
     header: Item {
         id: topBar
-        implicitHeight: topBarRow.height
+        implicitHeight: 50
 
         property int year
         property int month
@@ -121,99 +122,95 @@ Dialog {
             topBar.month = datePicker.month;
         }
 
-        RowLayout {
-            id: topBarRow
-            width: parent.width
-            height: 50
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: 10
+        readonly property string leftArrowIcon: "data:image/svg+xml;utf8,"
+                            + "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'>"
+                            + "<polygon points='15.293 3.293 6.586 12 15.293 20.707 16.707 19.293 9.414 12 16.707 4.707 15.293 3.293'/>"
+                            + "</svg>"
+        readonly property string rightArrowIcon: "data:image/svg+xml;utf8,"
+                            + "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'>"
+                            + "<polygon points='7.293 4.707 14.586 12 7.293 19.293 8.707 20.707 17.414 12 8.707 3.293 7.293 4.707'/>"
+                            + "</svg>"
 
-            readonly property string leftArrowIcon: "data:image/svg+xml;utf8,"
-                              + "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'>"
-                              + "<polygon points='15.293 3.293 6.586 12 15.293 20.707 16.707 19.293 9.414 12 16.707 4.707 15.293 3.293'/>"
-                              + "</svg>"
-            readonly property string rightArrowIcon: "data:image/svg+xml;utf8,"
-                              + "<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'>"
-                              + "<polygon points='7.293 4.707 14.586 12 7.293 19.293 8.707 20.707 17.414 12 8.707 3.293 7.293 4.707'/>"
-                              + "</svg>"
+        readonly property int ceterAreaWidth: width - previousDateButton.width - nextDateButton.width
 
-            ToolButton {
-                id: previousDateButton
-                Layout.fillHeight: true
-                icon.source: parent.leftArrowIcon
-                icon.width: icon.height
-                icon.height: height * 0.7
-                icon.color: enabled ? datePicker.topBarTextColor : datePicker.topBarBackgroundColor
-                onClicked: {
-                    if(dateComponentLoader.status == Loader.Ready)
-                    {
-                        dateComponentLoader.item.previous();
-                    }
+        ToolButton {
+            id: previousDateButton
+            width: height
+            height: parent.height
+            anchors.left: parent.left
+            icon.source: parent.leftArrowIcon
+            icon.width: icon.height
+            icon.height: height * 0.7
+            icon.color: enabled ? datePicker.topBarTextColor : datePicker.topBarBackgroundColor
+            onClicked: {
+                if(dateComponentLoader.status == Loader.Ready)
+                {
+                    dateComponentLoader.item.previous();
                 }
             }
-            ComboBox {
-                id: monthsList
-                visible: datePicker.pickMode == datePicker.pickDayMonthYear
-                currentIndex: topBar.month
-                Layout.preferredWidth: 160
-                Layout.fillHeight: true
-                font.pointSize: datePicker.topBarFontPointSize - 3
-                Material.foreground: datePicker.topBarTextColor
+        }
+        ComboBox {
+            id: monthsList
+            visible: datePicker.pickMode == datePicker.pickDayMonthYear
+            currentIndex: topBar.month
+            width: parent.ceterAreaWidth * 0.6
+            height: parent.height
+            anchors.left: previousDateButton.right
+            font.pointSize: datePicker.topBarFontPointSize - 3
+            Material.foreground: datePicker.topBarTextColor
 
-                model: [
-                    qsTr("January"),
-                    qsTr("February"),
-                    qsTr("March"),
-                    qsTr("April"),
-                    qsTr("May"),
-                    qsTr("June"),
-                    qsTr("July"),
-                    qsTr("August"),
-                    qsTr("September"),
-                    qsTr("October"),
-                    qsTr("November"),
-                    qsTr("December")
-                ]
+            model: [
+                qsTr("January"),
+                qsTr("February"),
+                qsTr("March"),
+                qsTr("April"),
+                qsTr("May"),
+                qsTr("June"),
+                qsTr("July"),
+                qsTr("August"),
+                qsTr("September"),
+                qsTr("October"),
+                qsTr("November"),
+                qsTr("December")
+            ]
 
-                background: Rectangle { color: monthsList.down ? Qt.darker(datePicker.topBarBackgroundColor, 1.2) : datePicker.topBarBackgroundColor }
+            background: Rectangle { color: monthsList.down ? Qt.darker(datePicker.topBarBackgroundColor, 1.2) : datePicker.topBarBackgroundColor }
 
-                onActivated: (index)=> {
-                    topBar.month = index;
-                    dateComponentLoader.item.update();
-                }
+            onActivated: (index)=> {
+                topBar.month = index;
+                dateComponentLoader.item.update();
             }
-            Item {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-            }
-            ComboBox {
-                id: yearsList
-                visible: datePicker.pickMode == datePicker.pickDayMonthYear || datePicker.pickMode == datePicker.pickMonthYear
-                currentIndex: enabled ? indexOfValue(topBar.year) : -1
-                Layout.preferredWidth: 100
-                Layout.fillHeight: true
-                font.pointSize: datePicker.topBarFontPointSize - 2
-                Material.foreground: datePicker.topBarTextColor
+        }
+        ComboBox {
+            id: yearsList
+            visible: datePicker.pickMode == datePicker.pickDayMonthYear || datePicker.pickMode == datePicker.pickMonthYear
+            currentIndex: enabled ? indexOfValue(topBar.year) : -1
+            width: parent.ceterAreaWidth * 0.4
+            height: parent.height
+            anchors.right: nextDateButton.left
+            font.pointSize: datePicker.topBarFontPointSize - 3
+            Material.foreground: datePicker.topBarTextColor
 
-                background: Rectangle { color: yearsList.down ? Qt.darker(datePicker.topBarBackgroundColor, 1.2) : datePicker.topBarBackgroundColor }
+            background: Rectangle { color: yearsList.down ? Qt.darker(datePicker.topBarBackgroundColor, 1.2) : datePicker.topBarBackgroundColor }
 
-                onActivated: (index)=> {
-                    topBar.year = yearsList.currentValue;
-                    dateComponentLoader.item.update();
-                }
+            onActivated: (index)=> {
+                topBar.year = yearsList.currentValue;
+                dateComponentLoader.item.update();
             }
-            ToolButton {
-                id: nextDateButton
-                Layout.fillHeight: true
-                icon.source: parent.rightArrowIcon
-                icon.width: icon.height
-                icon.height:  height * 0.7
-                icon.color: enabled ? datePicker.topBarTextColor : datePicker.topBarBackgroundColor
-                onClicked: {
-                    if(dateComponentLoader.status == Loader.Ready)
-                    {
-                        dateComponentLoader.item.next();
-                    }
+        }
+        ToolButton {
+            id: nextDateButton
+            width: height
+            height: parent.height
+            anchors.right: parent.right
+            icon.source: parent.rightArrowIcon
+            icon.width: icon.height
+            icon.height: height * 0.7
+            icon.color: enabled ? datePicker.topBarTextColor : datePicker.topBarBackgroundColor
+            onClicked: {
+                if(dateComponentLoader.status == Loader.Ready)
+                {
+                    dateComponentLoader.item.next();
                 }
             }
         }
